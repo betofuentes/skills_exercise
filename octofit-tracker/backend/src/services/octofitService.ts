@@ -67,7 +67,18 @@ export async function createTeam(input: unknown) {
     }
   }
 
-  return Team.create({ name, mascot, members });
+  const team = await Team.create({ name, mascot, members });
+  if (members.length > 0) {
+    await Promise.all([
+      Team.updateMany(
+        { _id: { $ne: team._id }, members: { $in: members } },
+        { $pull: { members: { $in: members } } },
+      ),
+      User.updateMany({ _id: { $in: members } }, { $set: { team: team._id } }),
+    ]);
+  }
+
+  return team;
 }
 
 export async function getLeaderboard() {
